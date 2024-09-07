@@ -1,11 +1,9 @@
 #%% Imports.
 import sys
-sys.path.insert(0, "C:/Users/conor/OneDrive/Desktop/Football_fun")
+sys.path.insert(0, "C:/path/to/Custom_Functions.py")
 import Custom_Functions as func
 import time
 import pandas as pd
-import matplotlib.pyplot as plt
-# matplotlib.use('Qt5Agg')  # Use the Qt5Agg backend for interactive plotting
 
 #%% Connect to SQL server using SQL alchemy.
 
@@ -125,11 +123,11 @@ def add_throw_in_column(throw_ins_df, data_source):
         # Only calculate metres gained for throw-ins that had passes as events before them.
         if index in throw_in_indexes and index - 1 in non_throw_in_indexes:
             # SB: Pitch coordinates flip if possession changes hands. If possession changes:
-            if throw_ins_df["dim_team_id"][index] != throw_ins_df["dim_team_id"][index - 1] and data_source == "Statsbomb":
+            if data_source == "Statsbomb" and throw_ins_df["dim_team_id"][index] != throw_ins_df["dim_team_id"][index - 1]:
                 distance_gained = round(throw_ins_df["sb_x_coord"][index] - (120 - throw_ins_df["sb_pass_end_x_coord"][index - 1]), 2)
 
             # SB: If possession doesn't change (pass event before was blocked/deflected):
-            elif throw_ins_df["dim_team_id"][index] == throw_ins_df["dim_team_id"][index - 1] and data_source == "Statsbomb":
+            elif data_source == "Statsbomb" and throw_ins_df["dim_team_id"][index] == throw_ins_df["dim_team_id"][index - 1]:
                 distance_gained = round(throw_ins_df["sb_x_coord"][index] - throw_ins_df["sb_pass_end_x_coord"][index - 1], 2)
 
             # Opta: All 'Out' events before the throws have been guaranteed to be for the team that will take the throw.
@@ -315,38 +313,6 @@ create_throw_ins_table_in_sql(engine=sql_engine, table_schema="Fact", table_name
                               throw_ins_df=fact_throw_ins,
                               guid_columns=["sb_event_id", "sb_pass_assisted_shot_id", "sb_shot_key_pass_id"])
 
-
-#%% Plot all throws and preceding events.
-
-def plot_throws_and_preceding(throw_ins_df):
-
-    # Extract all throw-ins.
-    throw_ins = throw_ins_df[(throw_ins_df["sb_pass_type"] == "Throw-in")&
-                                (throw_ins_df["dim_game_id"] == 152)]
-
-    non_throw_passes = throw_ins_df[(throw_ins_df["sb_pass_type"] != "Throw-in") &
-                                           (throw_ins_df["dim_game_id"] == 152) &
-                                           (throw_ins_df["sb_pass_end_x_coord"] != -1)]
-
-    plt.scatter(throw_ins["sb_x_coord"], throw_ins["sb_y_coord"], marker="o")
-    # plt.scatter(non_throws_or_passes["sb_x_coord"], non_throws_or_passes["sb_y_coord"], marker="o")
-    plt.scatter(non_throw_passes["sb_pass_end_x_coord"], non_throw_passes["sb_pass_end_y_coord"], marker="o")
-
-    # Annotate points with labels
-    for index, row in throw_ins.iterrows():
-        plt.text(row['sb_x_coord'], row['sb_y_coord'], row['sb_event_index'], ha='right', va='bottom')
-
-    # for index, row in non_throws_or_passes.iterrows():
-    #     plt.text(row['sb_x_coord'], row['sb_y_coord'], row['sb_event_index'], ha='right', va='bottom')
-
-    for index, row in non_throw_passes.iterrows():
-        plt.text(row['sb_pass_end_x_coord'], row['sb_pass_end_y_coord'], row['sb_event_index'], ha='right', va='bottom')
-
-    plt.title(f"No. throws = {len(throw_ins)}. No. passes = {len(non_throw_passes)}.")
-    plt.show()
-
-
-# plot_throws_and_preceding(fact_sb_throw_ins)
 
 
 
